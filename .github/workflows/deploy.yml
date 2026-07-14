@@ -24,11 +24,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # API key TIDAK ikut di build publik — pengguna mengisi key
-      # lewat kolom di aplikasi (tersimpan di localStorage perangkat).
+      # Key ikut tertanam di bundle publik (keputusan sadar untuk pemakaian
+      # pribadi) — kelola risikonya lewat spend limit di console.anthropic.com.
       - run: npm run build
         env:
           BASE_PATH: /TreadmillCoach/
+          VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
