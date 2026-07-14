@@ -1,4 +1,4 @@
-# Treadmill Coach
+# BugarAI
 
 Aplikasi pemandu latihan treadmill 30 menit (±5.000 langkah) — program interval 6 fase
 dengan panduan kecepatan & incline, bunyi otomatis tiap ganti fase, jadwal mingguan,

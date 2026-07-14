@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "Treadmill Coach",
-        short_name: "Treadmill",
+        name: "BugarAI",
+        short_name: "BugarAI",
         description: "Program treadmill 30 menit / ±5.000 langkah — timer fase, BMR & TDEE, log berat dan asupan harian.",
         lang: "id",
         display: "standalone",
