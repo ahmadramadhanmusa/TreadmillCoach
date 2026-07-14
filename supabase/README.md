@@ -1,5 +1,11 @@
 # Backend (Supabase) — fondasi versi berbayar
 
+> **Status: SUDAH DI-DEPLOY** (2026-07-14) ke project **Bugar.ai**
+> (`ooapxocyjetimvvhuarj`, Singapore). Skema kuota terpasang, secret
+> `ANTHROPIC_API_KEY` terisi (masih key lama — rotasi saat aplikasi pindah
+> ke proxy), function `analyze-food` live dan teruji end-to-end.
+> Endpoint: `https://ooapxocyjetimvvhuarj.supabase.co/functions/v1/analyze-food`
+
 Proxy AI + kuota per user, supaya API key Anthropic **tidak lagi tertanam di
 aplikasi** dan biaya per pengguna terkendali. Sinkronisasi data & pembayaran
 (Mayar) menyusul setelah ini jalan.
