@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Anthropic from "@anthropic-ai/sdk";
+import RunTab from "./RunTab.jsx";
 
 /* ============================================================
    TREADMILL COACH — Program 30 Menit / ±5.000 Langkah
@@ -167,6 +168,12 @@ const PATHS = {
     </>
   ),
   moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
+  pin: (
+    <>
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </>
+  ),
   camera: (
     <>
       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
@@ -395,7 +402,7 @@ function WeightChart({ entries }) {
 }
 
 // ============================================================
-const TABS = ["workout", "bmr", "progress", "schedule", "history"];
+const TABS = ["workout", "run", "bmr", "progress", "schedule", "history"];
 
 export default function App() {
   const [tab, setTab] = useState(() => {
@@ -1210,6 +1217,8 @@ export default function App() {
       )}
 
       {/* ================= RIWAYAT ================= */}
+      {tab === "run" && <RunTab weight={weight} />}
+
       {tab === "history" && (
         <div className="view">
           <section className="week-card">
@@ -1264,6 +1273,7 @@ export default function App() {
       <nav className="nav" aria-label="Navigasi utama">
         {[
           { id: "workout", icon: "play", label: "Latihan" },
+          { id: "run", icon: "pin", label: "Lari" },
           { id: "bmr", icon: "calc", label: "BMR" },
           { id: "progress", icon: "trend", label: "Progres" },
           { id: "schedule", icon: "calendar", label: "Jadwal" },

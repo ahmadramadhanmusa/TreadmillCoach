@@ -1254,3 +1254,89 @@ input:focus-visible {
   background: var(--pink);
   color: var(--ink);
 }
+
+/* ============================================================
+   LARI / JALAN OUTDOOR (GPS)
+   ============================================================ */
+
+.gps-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+
+.gps-dot.ok { background: var(--green); color: var(--ink); border-color: transparent; }
+.gps-dot.wait { background: var(--yellow); color: var(--ink); border-color: transparent; }
+.gps-dot.denied { background: var(--pink); color: var(--ink); border-color: transparent; }
+
+.mode-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.mode-pill {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  transition: background 0.15s ease;
+}
+
+.mode-pill.on {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+.run-map {
+  height: 280px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  margin-bottom: 14px;
+  z-index: 0; /* di bawah bottom nav */
+}
+
+.run-note {
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: var(--yellow);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.run-stats { margin-bottom: 16px; }
+.run-stats .val { font-size: 19px; }
+.run-stats .val small { font-size: 10px; }
+
+.run-h2 {
+  font-size: 15px;
+  font-weight: 800;
+  margin: 22px 0 10px;
+}
+
+.run-item {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 10px;
+  border: 2px solid transparent;
+}
+
+.run-item.viewing { border-color: var(--pink-strong); }
+
+/* Nav muat 6 tab */
+.nav button { min-width: 44px; }

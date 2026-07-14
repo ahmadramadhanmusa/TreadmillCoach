@@ -35,6 +35,16 @@ export default defineConfig({
         // Font Google di-cache saat pertama online supaya tetap ada saat offline
         runtimeCaching: [
           {
+            // Peta OpenStreetMap — cache tile yang pernah dilihat
+            urlPattern: /^https:\/\/tile\.openstreetmap\.org\//,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "osm-tiles",
+              expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 14 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "google-fonts-css" },

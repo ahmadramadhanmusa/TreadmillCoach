@@ -18,6 +18,12 @@ npm run build    # produksi ke folder dist/
   target kecepatan & incline per fase, estimasi langkah/kalori/jarak live,
   profil interval per menit, beep saat ganti fase + hitung mundur 3-2-1,
   zona detak jantung (dari usia), dan wake lock agar layar tetap menyala.
+- **Lari** — GPS tracker lari/jalan outdoor ala Strava: rute live di peta
+  (Leaflet + OpenStreetMap), jarak, pace saat ini & rata-rata, estimasi kalori
+  dari berat badan, wake lock, dan riwayat aktivitas (maks. 30) yang rutenya
+  bisa dilihat ulang di peta. Butuh izin lokasi & layar tetap menyala saat
+  tracking. Mode demo tanpa GPS: buka dengan `?gps-demo` (atau
+  `?gps-demo=auto` untuk langsung mulai).
 - **BMR** — kalkulator BMR (Mifflin-St Jeor) & TDEE dengan faktor aktivitas,
   plus target kalori defisit dan target protein harian.
 - **Progres** — log berat badan dengan grafik tren & selisih 7/30 hari,
@@ -29,7 +35,7 @@ npm run build    # produksi ke folder dist/
 - **Jadwal** — jadwal mingguan beban/kardio/gabung/rest yang bisa diedit.
 - **Riwayat** — ringkasan pekan ini dan daftar sesi tersimpan (maks. 60).
 
-Tab bisa di-deep-link: `#workout`, `#bmr`, `#progress`, `#schedule`, `#history`.
+Tab bisa di-deep-link: `#workout`, `#run`, `#bmr`, `#progress`, `#schedule`, `#history`.
 
 ## PWA
 
