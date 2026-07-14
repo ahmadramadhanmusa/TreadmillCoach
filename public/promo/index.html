@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Treadmill Coach — Pelatih Treadmill & Diet Coach AI Bahasa Indonesia</title>
+  <meta name="description" content="Program treadmill 30 menit terarah, hitung kalori makanan cukup dari foto (AI), GPS lari outdoor, BMR/TDEE & log berat badan. Gratis, tanpa install, jalan offline." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+
+  <!-- Preview saat dibagikan ke WhatsApp / medsos -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Treadmill Coach — pelatih treadmill & diet coach AI" />
+  <meta property="og:description" content="Foto makananmu → langsung tahu kalorinya. Plus program treadmill 30 menit, GPS lari, dan kalkulator BMR. Gratis & berbahasa Indonesia." />
+  <meta property="og:image" content="https://ahmadramadhanmusa.github.io/TreadmillCoach/pwa-512.png" />
+  <meta property="og:url" content="https://ahmadramadhanmusa.github.io/TreadmillCoach/promo/" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #f7f2ee; --ink: #17181c; --ink-soft: #6f6a64; --card: #fff; --line: #e9e2da;
+      --pink: #f6cfdd; --pink-strong: #ee5d8f; --blue: #cbe3f6; --yellow: #f9e9c8;
+      --green: #daebd1; --lavender: #e3daf4;
+      --r-lg: 28px; --r-md: 20px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: "Plus Jakarta Sans", -apple-system, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased; line-height: 1.55;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+    /* Hero */
+    header { padding: 56px 0 30px; text-align: center; }
+    .badge {
+      display: inline-block; background: var(--card); border: 1px solid var(--line);
+      border-radius: 999px; padding: 8px 16px; font-size: 12px; font-weight: 800;
+      letter-spacing: .08em; color: var(--ink-soft); margin-bottom: 22px;
+    }
+    h1 { font-size: clamp(30px, 6vw, 52px); font-weight: 800; line-height: 1.12; letter-spacing: -0.02em; }
+    h1 em { font-style: normal; background: linear-gradient(transparent 62%, var(--pink) 62%); }
+    .sub { max-width: 560px; margin: 18px auto 0; color: var(--ink-soft); font-size: clamp(15px, 2.4vw, 18px); }
+    .cta-row { margin-top: 30px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-block; text-decoration: none; font-weight: 800; letter-spacing: .04em;
+      padding: 16px 30px; border-radius: 999px; font-size: 15px; transition: transform .12s ease;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-dark { background: var(--ink); color: #fff; box-shadow: 0 12px 32px rgba(23,24,28,.25); }
+    .btn-light { background: var(--card); color: var(--ink); border: 1px solid var(--line); }
+    .cta-note { margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
+
+    /* Screenshot strip */
+    .shots { display: flex; gap: 18px; justify-content: center; padding: 44px 0 10px; flex-wrap: wrap; }
+    .phone {
+      width: min(250px, 78vw); border-radius: 34px; border: 6px solid var(--ink);
+      overflow: hidden; background: var(--ink); box-shadow: 0 24px 60px rgba(23,24,28,.22);
+    }
+    .phone img { display: block; width: 100%; }
+    .phone:nth-child(2) { transform: translateY(-14px); }
+    @media (max-width: 700px) { .phone:nth-child(2) { transform: none; } }
+
+    /* Fitur */
+    section { padding: 54px 0 8px; }
+    h2 { font-size: clamp(22px, 4vw, 30px); font-weight: 800; letter-spacing: -0.01em; margin-bottom: 24px; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .card { border-radius: var(--r-lg); padding: 24px 22px; }
+    .card .ic {
+      width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.75);
+      display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+    }
+    .card h3 { font-size: 16.5px; font-weight: 800; margin-bottom: 6px; }
+    .card p { font-size: 14px; color: rgba(23,24,28,.72); }
+    .card .tag {
+      display: inline-block; margin-top: 10px; background: var(--ink); color: #fff;
+      font-size: 10px; font-weight: 800; letter-spacing: .08em; border-radius: 999px; padding: 4px 10px;
+    }
+
+    /* Langkah */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    .step { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: 22px; }
+    .step .num {
+      width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff;
+      font-weight: 800; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 14px;
+    }
+    .step b { display: block; margin-bottom: 4px; }
+    .step span { font-size: 14px; color: var(--ink-soft); }
+
+    /* FAQ */
+    .faq { max-width: 640px; margin: 0 auto; }
+    details {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md);
+      padding: 16px 20px; margin-bottom: 10px;
+    }
+    summary { font-weight: 800; font-size: 15px; cursor: pointer; }
+    details p { margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
+
+    /* Footer */
+    .final { text-align: center; padding: 60px 0 26px; }
+    footer { text-align: center; padding: 26px 20px 40px; font-size: 12px; color: var(--ink-soft); }
+    footer .disclaimer { max-width: 560px; margin: 10px auto 0; }
+  </style>
+</head>
+<body>
+
+  <header class="wrap">
+    <div class="badge">GRATIS · BAHASA INDONESIA · TANPA INSTALL</div>
+    <h1>Foto makananmu,<br /><em>langsung tahu kalorinya.</em></h1>
+    <p class="sub">
+      Treadmill Coach adalah pelatih treadmill &amp; diet coach AI dalam genggaman —
+      program latihan 30 menit terarah, estimasi kalori masakan Indonesia cukup dari foto,
+      GPS lari outdoor, dan kalkulator kebutuhan kalori harian.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-dark" href="../#workout">Coba Gratis Sekarang</a>
+      <a class="btn btn-light" href="#fitur">Lihat Fitur</a>
+    </div>
+    <div class="cta-note">Buka langsung di browser HP — tanpa download, tanpa daftar akun.</div>
+  </header>
+
+  <div class="shots wrap">
+    <div class="phone"><img src="shot-workout.png" alt="Tab Latihan: timer program treadmill 30 menit dengan panduan kecepatan dan incline" loading="lazy" /></div>
+    <div class="phone"><img src="shot-run.png" alt="Tab Lari: tracking GPS outdoor dengan rute di peta, jarak, pace, dan kalori" loading="lazy" /></div>
+    <div class="phone"><img src="shot-bmr.png" alt="Tab BMR: kalkulator BMR dan TDEE dengan target protein harian" loading="lazy" /></div>
+  </div>
+
+  <section id="fitur" class="wrap">
+    <h2>Semua yang kamu butuhkan untuk mulai konsisten</h2>
+    <div class="grid">
+      <div class="card" style="background: var(--pink)">
+        <div class="ic">📸</div>
+        <h3>Hitung kalori dari foto</h3>
+        <p>Potret nasi padang, soto, atau menu apa pun — AI mengenali makanannya dan mengestimasi kalori + protein, dikalibrasi untuk masakan Indonesia.</p>
+        <span class="tag">ANDALAN</span>
+      </div>
+      <div class="card" style="background: var(--blue)">
+        <div class="ic">⏱️</div>
+        <h3>Program treadmill 30 menit</h3>
+        <p>6 fase interval dengan target kecepatan &amp; incline yang jelas, bunyi otomatis tiap ganti fase, dan estimasi ±5.000 langkah per sesi.</p>
+      </div>
+      <div class="card" style="background: var(--green)">
+        <div class="ic">📍</div>
+        <h3>GPS lari &amp; jalan outdoor</h3>
+        <p>Rute tergambar live di peta, lengkap dengan jarak, pace, kalori, dan riwayat aktivitas yang bisa dilihat ulang.</p>
+      </div>
+      <div class="card" style="background: var(--lavender)">
+        <div class="ic">🧮</div>
+        <h3>BMR &amp; TDEE otomatis</h3>
+        <p>Tahu persis kebutuhan kalori harianmu (Mifflin-St Jeor), target defisit untuk turun berat, dan target protein.</p>
+      </div>
+      <div class="card" style="background: var(--yellow)">
+        <div class="ic">📈</div>
+        <h3>Progres yang terlihat</h3>
+        <p>Grafik tren berat badan, catatan kalori &amp; protein harian vs target, dan streak pekan latihanmu.</p>
+      </div>
+      <div class="card" style="background: var(--card); border: 1px solid var(--line)">
+        <div class="ic" style="background: var(--bg)">📱</div>
+        <h3>Ringan &amp; offline</h3>
+        <p>Bisa dipasang ke home screen seperti aplikasi biasa, jalan tanpa internet, dan datamu tersimpan di HP-mu sendiri.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2>Mulai dalam 30 detik</h2>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><b>Buka linknya</b><span>Klik "Coba Gratis" — aplikasi langsung jalan di browser HP.</span></div>
+      <div class="step"><div class="num">2</div><b>Pasang ke home screen</b><span>Menu browser → <i>Add to Home Screen</i>, jadi seperti aplikasi biasa.</span></div>
+      <div class="step"><div class="num">3</div><b>Naik ke treadmill</b><span>Tekan MULAI dan ikuti panduan kecepatan &amp; incline tiap fase.</span></div>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <h2>Pertanyaan yang sering muncul</h2>
+    <div class="faq">
+      <details>
+        <summary>Beneran gratis?</summary>
+        <p>Ya, semua fitur bisa dipakai gratis saat ini. Kalau responsnya bagus, ke depan akan ada versi Pro dengan sinkronisasi akun &amp; kuota foto lebih besar — pengguna awal akan dapat harga spesial.</p>
+      </details>
+      <details>
+        <summary>Data saya disimpan di mana?</summary>
+        <p>Semua data (berat badan, sesi latihan, catatan makan) tersimpan di HP kamu sendiri, bukan di server. Tidak ada pendaftaran akun, tidak ada data yang dikirim ke pihak lain.</p>
+      </details>
+      <details>
+        <summary>Perlu internet?</summary>
+        <p>Setelah dibuka sekali, aplikasi jalan offline. Internet hanya diperlukan untuk fitur foto makanan (AI) dan memuat peta.</p>
+      </details>
+      <details>
+        <summary>Estimasi kalorinya akurat?</summary>
+        <p>Estimasi AI dari foto adalah perkiraan porsi visual — cukup akurat untuk tracking harian, tapi bukan pengganti timbangan makanan untuk kebutuhan medis.</p>
+      </details>
+    </div>
+  </section>
+
+  <div class="final wrap">
+    <h2>Coba sekarang, gratis.</h2>
+    <div class="cta-row">
+      <a class="btn btn-dark" href="../#workout">Buka Treadmill Coach →</a>
+    </div>
+    <div class="cta-note">Ada masukan atau mau jadi penguji awal? Hubungi pembuatnya lewat komunitas tempat kamu menemukan link ini.</div>
+  </div>
+
+  <footer>
+    © 2026 Treadmill Coach
+    <div class="disclaimer">
+      Aplikasi ini alat bantu kebugaran, bukan nasihat medis. Konsultasikan program latihan
+      dan diet dengan tenaga kesehatan bila kamu punya kondisi tertentu.
+    </div>
+  </footer>
+
+</body>
+</html>

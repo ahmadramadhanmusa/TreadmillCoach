@@ -32,6 +32,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,svg}"],
+        // Landing page (promo/) tidak perlu ikut precache aplikasi
+        globIgnores: ["promo/**"],
         // Font Google di-cache saat pertama online supaya tetap ada saat offline
         runtimeCaching: [
           {
