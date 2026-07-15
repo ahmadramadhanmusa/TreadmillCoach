@@ -34,6 +34,45 @@ const TYPE_INFO = {
   rest: { label: "Istirahat",      badge: "REST",         tone: "yellow",   icon: "moon" },
 };
 
+// ---- Kategori BMI (klasifikasi Asia-Pasifik, dipakai untuk populasi Indonesia) ----
+const BMI_CATS = [
+  { max: 18.5, label: "Kurus",       tone: "blue",   advice: "Tambah asupan perlahan — surplus ringan + protein cukup untuk naik berat sehat." },
+  { max: 23,   label: "Normal",      tone: "green",  advice: "Pertahankan — pola makan dan latihan sekarang sudah di jalur yang benar." },
+  { max: 25,   label: "Berisiko",    tone: "yellow", advice: "Mulai defisit ringan 300 kkal/hari agar kembali ke rentang normal." },
+  { max: 30,   label: "Obesitas I",  tone: "pink",   advice: "Defisit 300–500 kkal/hari + kardio rutin 3×/pekan sesuai jadwal." },
+  { max: 99,   label: "Obesitas II", tone: "pink",   advice: "Defisit 500 kkal/hari dan jaga konsistensi; pertimbangkan konsultasi ke dokter." },
+];
+const bmiCat = (bmi) => BMI_CATS.find((c) => bmi < c.max) || BMI_CATS[BMI_CATS.length - 1];
+
+// ---- Skala BMI: bar berwarna 15–35 dengan penanda posisi ----
+function BmiScale({ bmi }) {
+  const MIN = 15, MAX = 35;
+  const SEGS = [
+    { from: MIN,  to: 18.5, color: "var(--blue)" },
+    { from: 18.5, to: 23,   color: "var(--green)" },
+    { from: 23,   to: 25,   color: "var(--yellow)" },
+    { from: 25,   to: 30,   color: "var(--pink)" },
+    { from: 30,   to: MAX,  color: "var(--pink-strong)" },
+  ];
+  const pos = (v) => `${((Math.max(MIN, Math.min(MAX, v)) - MIN) / (MAX - MIN)) * 100}%`;
+  return (
+    <div className="bmi-scale" role="img" aria-label={`Skala BMI dari 15 sampai 35, posisi kamu di ${bmi.toFixed(1)}`}>
+      <div className="bmi-track">
+        {SEGS.map((s) => (
+          <span key={s.from} className="bmi-seg"
+            style={{ width: `${((s.to - s.from) / (MAX - MIN)) * 100}%`, background: s.color }} />
+        ))}
+      </div>
+      <span className="bmi-marker" style={{ left: pos(bmi) }} />
+      <div className="bmi-ticks">
+        {[18.5, 23, 25, 30].map((v) => (
+          <span key={v} style={{ left: pos(v) }}>{v.toLocaleString("id-ID")}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---- Faktor aktivitas untuk TDEE ----
 const ACTIVITIES = [
   { id: "sedentary",  label: "Jarang gerak", desc: "kerja duduk, tanpa olahraga", factor: 1.2 },
@@ -552,6 +591,13 @@ export default function App() {
   const tdee = Math.round(bmr * activityInfo.factor);
   const protein = Math.round((weight * 1.8) / 5) * 5;
 
+  // BMI = berat / tinggi² (m) — kategori Asia-Pasifik
+  const hM = bmrProfile.height / 100;
+  const bmi = weight / (hM * hM);
+  const bmiInfo = bmiCat(bmi);
+  const idealLo = Math.round(18.5 * hM * hM);
+  const idealHi = Math.round(22.9 * hM * hM);
+
   // Zona detak jantung (dari usia di profil BMR)
   const maxHr = 220 - bmrProfile.age;
   const hrZone = (lo, hi) => `${Math.round(maxHr * lo)}–${Math.round(maxHr * hi)}`;
@@ -1068,6 +1114,23 @@ export default function App() {
                 Untuk turun berat aman, makan 300–500 kkal di bawah angka ini.
               </div>
             </div>
+          </section>
+
+          {/* BMI */}
+          <section className="card">
+            <div className="chart-head">
+              <h2>BMI — Indeks Massa Tubuh</h2>
+              <span className="meta">skala Asia-Pasifik</span>
+            </div>
+            <div className="bmi-row">
+              <span className="bmi-val">{bmi.toLocaleString("id-ID", { maximumFractionDigits: 1 })}</span>
+              <span className="tag" style={{ background: TONE[bmiInfo.tone] }}>{bmiInfo.label}</span>
+            </div>
+            <BmiScale bmi={bmi} />
+            <p className="bmi-note">
+              Berat ideal untuk tinggi {bmrProfile.height} cm: <b>{idealLo}–{idealHi} kg</b>.
+              {" "}{bmiInfo.advice}
+            </p>
           </section>
 
           {/* Form data diri */}

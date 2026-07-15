@@ -742,6 +742,78 @@ input:focus-visible {
   grid-template-columns: 1fr 1fr;
 }
 
+/* ---------- BMI ---------- */
+.bmi-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bmi-val {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1.1;
+}
+
+.bmi-row .tag {
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 999px;
+  padding: 7px 13px;
+  color: var(--ink);
+}
+
+.bmi-scale {
+  position: relative;
+  margin: 16px 2px 2px;
+}
+
+.bmi-track {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bmi-seg {
+  display: block;
+}
+
+.bmi-marker {
+  position: absolute;
+  top: -5px;
+  width: 4px;
+  height: 24px;
+  background: var(--ink);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+
+.bmi-ticks {
+  position: relative;
+  height: 16px;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.bmi-ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.bmi-note {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin-top: 12px;
+}
+
+.bmi-note b {
+  color: var(--ink);
+}
+
 .status-row {
   display: flex;
   flex-wrap: wrap;
