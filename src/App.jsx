@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Anthropic from "@anthropic-ai/sdk";
 import RunTab from "./RunTab.jsx";
+import { onUpdateReady, applyUpdate } from "./swUpdate.js";
 
 /* ============================================================
    TREADMILL COACH — Program 30 Menit / ±5.000 Langkah
@@ -461,10 +462,16 @@ export default function App() {
   );
   const [keyInput, setKeyInput] = useState("");
   const [scan, setScan] = useState({ status: "idle" }); // idle|need-key|loading|done|error
+  const [updateReady, setUpdateReady] = useState(false);
   const fileRef = useRef(null);
   const beep = useBeeper();
   const prevPhase = useRef(null);
   useWakeLock(running);
+
+  // Banner saat versi baru aplikasi siap dipasang
+  useEffect(() => {
+    onUpdateReady(() => setUpdateReady(true));
+  }, []);
 
   // Muat riwayat, berat & jadwal
   useEffect(() => {
@@ -1323,6 +1330,14 @@ export default function App() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Banner pembaruan */}
+      {updateReady && (
+        <div className="update-bar" role="status">
+          <span>Versi baru tersedia</span>
+          <button onClick={() => applyUpdate(true)}>MUAT ULANG</button>
         </div>
       )}
 

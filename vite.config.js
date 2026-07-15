@@ -11,7 +11,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt": versi baru menunggu sampai pengguna menekan "MUAT ULANG"
+      // (banner di App) — tidak me-reload sendiri di tengah sesi latihan.
+      registerType: "prompt",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "BugarAI",
