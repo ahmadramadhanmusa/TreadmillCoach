@@ -1,9 +1,11 @@
 # Backend (Supabase) — fondasi versi berbayar
 
-> **Status: SUDAH DI-DEPLOY** (2026-07-14) ke project **Bugar.ai**
-> (`ooapxocyjetimvvhuarj`, Singapore). Skema kuota terpasang, secret
-> `ANTHROPIC_API_KEY` terisi (masih key lama — rotasi saat aplikasi pindah
-> ke proxy), function `analyze-food` live dan teruji end-to-end.
+> **Status: LIVE & DIPAKAI APLIKASI** (2026-07-15). Project **Bugar.ai**
+> (`ooapxocyjetimvvhuarj`, Singapore). Aplikasi memanggil proxy dengan
+> **anonymous sign-in** otomatis (`src/backend.js`) — tidak ada API key di
+> bundle. Kuota 60 foto/bulan/user aktif. Secret `ANTHROPIC_API_KEY`
+> masih key lama — **tinggal rotasi**: buat key baru di console.anthropic.com,
+> `supabase secrets set ANTHROPIC_API_KEY=<baru>`, lalu revoke key lama.
 > Endpoint: `https://ooapxocyjetimvvhuarj.supabase.co/functions/v1/analyze-food`
 
 Proxy AI + kuota per user, supaya API key Anthropic **tidak lagi tertanam di
@@ -35,15 +37,16 @@ aplikasi** dan biaya per pengguna terkendali. Sinkronisasi data & pembayaran
    supabase functions deploy analyze-food
    ```
 
-## Sesudah itu (perubahan aplikasi — minta bantuan Claude)
+## Sesudah itu (perubahan aplikasi)
 
-- Tambah login (Supabase Auth, magic link email / Google) di aplikasi.
-- Ganti `analyzeFoodPhoto()` di `src/App.jsx` agar memanggil
-  `https://<PROJECT_REF>.supabase.co/functions/v1/analyze-food`
-  dengan JWT user, bukan Claude API langsung.
-- Hapus `VITE_ANTHROPIC_API_KEY` dari GitHub Actions secret & `.env.local`,
-  lalu **revoke key lama** di console.anthropic.com.
-- (Opsional) Sinkronkan data latihan/berat ke tabel Supabase agar tidak
+- [x] Auth di aplikasi — **anonymous sign-in** (2026-07-15); upgrade ke
+  "tautkan email" menyusul saat versi berbayar.
+- [x] `analyzeFoodPhoto()` memanggil function dengan JWT (`src/backend.js`).
+- [x] `VITE_ANTHROPIC_API_KEY` dihapus dari GitHub Actions (secret & workflow).
+- [ ] **Rotasi key Anthropic** (tindakan manual): buat key baru →
+  `supabase secrets set ANTHROPIC_API_KEY=<baru>` → revoke key lama →
+  hapus `.env.local`.
+- [ ] (Opsional) Sinkronkan data latihan/berat ke tabel Supabase agar tidak
   hilang saat ganti HP — dan jadi nilai jual versi Pro.
 
 ## Kuota
