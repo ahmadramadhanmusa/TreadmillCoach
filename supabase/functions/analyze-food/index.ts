@@ -40,7 +40,8 @@ const FOOD_PROMPT =
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  // supabase-js ikut mengirim apikey & x-client-info — wajib diizinkan di preflight
+  "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

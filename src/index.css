@@ -1037,22 +1037,6 @@ input:focus-visible {
   line-height: 1.5;
 }
 
-.key-row {
-  display: flex;
-  gap: 8px;
-}
-
-.key-row input {
-  flex: 1;
-  min-width: 0;
-  border: 1.5px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 11px 13px;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--card);
-}
-
 .scan-img {
   width: 100%;
   max-height: 160px;

@@ -24,12 +24,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      # Key ikut tertanam di bundle publik (keputusan sadar untuk pemakaian
-      # pribadi) — kelola risikonya lewat spend limit di console.anthropic.com.
+      # Fitur AI lewat proxy Supabase (analyze-food) — tidak ada API key
+      # yang tertanam di bundle; kunci anon Supabase memang publik.
       - run: npm run build
         env:
           BASE_PATH: /TreadmillCoach/
-          VITE_ANTHROPIC_API_KEY: ${{ secrets.VITE_ANTHROPIC_API_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

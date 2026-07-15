@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import Anthropic from "@anthropic-ai/sdk";
 import RunTab from "./RunTab.jsx";
+import { analyzeFoodPhoto } from "./backend.js";
 import { onUpdateReady, applyUpdate } from "./swUpdate.js";
 
 /* ============================================================
@@ -313,36 +313,7 @@ function Profile({ t }) {
   );
 }
 
-// ---- Analisis foto makanan (Claude vision) ----
-const FOOD_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["items", "total_kcal", "total_protein"],
-  properties: {
-    items: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["name", "kcal", "protein"],
-        properties: {
-          name: { type: "string" },
-          kcal: { type: "integer" },
-          protein: { type: "integer" },
-        },
-      },
-    },
-    total_kcal: { type: "integer" },
-    total_protein: { type: "integer" },
-  },
-};
-
-const FOOD_PROMPT =
-  "Identifikasi makanan dan minuman di foto ini. Perkirakan porsi dari yang terlihat, " +
-  "lalu estimasikan kalori (kkal) dan protein (gram) per item secara realistis untuk masakan Indonesia " +
-  "bila relevan. Nama item dalam bahasa Indonesia, singkat. Jika tidak ada makanan di foto, " +
-  "kembalikan items kosong dengan total 0.";
-
+// ---- Analisis foto makanan — via proxy backend (lihat backend.js) ----
 // Kecilkan foto ke maks 1024px sisi terpanjang → base64 JPEG
 async function imageToBase64(file, maxDim = 1024) {
   const bitmap = await createImageBitmap(file);
@@ -353,30 +324,6 @@ async function imageToBase64(file, maxDim = 1024) {
   canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
   return { b64: dataUrl.split(",")[1], preview: dataUrl };
-}
-
-async function analyzeFoodPhoto(apiKey, b64) {
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-  const res = await client.messages.create({
-    model: "claude-opus-4-8",
-    max_tokens: 2048,
-    output_config: { format: { type: "json_schema", schema: FOOD_SCHEMA } },
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
-          { type: "text", text: FOOD_PROMPT },
-        ],
-      },
-    ],
-  });
-  if (res.stop_reason === "refusal") {
-    throw new Error("Permintaan ditolak model — coba foto lain.");
-  }
-  const text = res.content.find((block) => block.type === "text")?.text;
-  if (!text) throw new Error("Respons kosong — coba lagi.");
-  return JSON.parse(text);
 }
 
 // ---- Smartwatch: detak jantung via Web Bluetooth (profil BLE standar) ----
@@ -513,13 +460,7 @@ export default function App() {
   const [bmrProfile, setBmrProfile] = useState({ sex: "m", height: 170, age: 30, activity: "moderate" });
   const [weights, setWeights] = useState([]);   // [{d: "YYYY-MM-DD", kg}]
   const [food, setFood] = useState([]);         // [{d: "YYYY-MM-DD", kcal, prot}]
-  // Key bawaan dari .env.local (VITE_ANTHROPIC_API_KEY) — key yang pernah
-  // diinput manual di aplikasi tetap diprioritaskan.
-  const [apiKey, setApiKey] = useState(
-    () => store.get("tm-apikey") || import.meta.env.VITE_ANTHROPIC_API_KEY || ""
-  );
-  const [keyInput, setKeyInput] = useState("");
-  const [scan, setScan] = useState({ status: "idle" }); // idle|need-key|loading|done|error
+  const [scan, setScan] = useState({ status: "idle" }); // idle|loading|done|error
   const [updateReady, setUpdateReady] = useState(false);
   const [showOnboard, setShowOnboard] = useState(false);
   const [hr, setHr] = useState(null);                // bpm terkini dari smartwatch
@@ -777,24 +718,8 @@ export default function App() {
     return "var(--pink)";
   };
 
-  // ---- Foto makanan → estimasi kalori ----
-  const openCamera = () => {
-    if (!apiKey) {
-      setScan({ status: "need-key" });
-      return;
-    }
-    fileRef.current?.click();
-  };
-
-  const saveApiKey = () => {
-    const k = keyInput.trim();
-    if (!k) return;
-    setApiKey(k);
-    store.set("tm-apikey", k);
-    setKeyInput("");
-    setScan({ status: "idle" });
-    fileRef.current?.click();
-  };
+  // ---- Foto makanan → estimasi kalori (via proxy backend) ----
+  const openCamera = () => fileRef.current?.click();
 
   const onPhotoPicked = async (e) => {
     const file = e.target.files?.[0];
@@ -803,20 +728,10 @@ export default function App() {
     try {
       const { b64, preview } = await imageToBase64(file);
       setScan({ status: "loading", preview });
-      const result = await analyzeFoodPhoto(apiKey, b64);
+      const result = await analyzeFoodPhoto(b64);
       setScan({ status: "done", preview, result });
     } catch (err) {
-      let msg = err?.message || "Terjadi kesalahan.";
-      if (err instanceof Anthropic.AuthenticationError) {
-        msg = "API key tidak valid. Masukkan ulang.";
-        setApiKey("");
-        store.set("tm-apikey", "");
-      } else if (err instanceof Anthropic.RateLimitError) {
-        msg = "Terlalu banyak permintaan — tunggu sebentar lalu coba lagi.";
-      } else if (err instanceof Anthropic.APIConnectionError) {
-        msg = "Tidak bisa terhubung — cek koneksi internet.";
-      }
-      setScan({ status: "error", error: msg });
+      setScan({ status: "error", error: err?.message || "Terjadi kesalahan." });
     }
   };
 
@@ -1156,27 +1071,6 @@ export default function App() {
             </div>
 
             {/* Panel foto makanan */}
-            {scan.status === "need-key" && (
-              <div className="scan-panel">
-                <div className="scan-title">
-                  Fitur foto makanan memakai Claude AI
-                  <button className="scan-close" onClick={() => setScan({ status: "idle" })} aria-label="Tutup">
-                    <Icon name="x" size={14} />
-                  </button>
-                </div>
-                <p className="scan-note">
-                  Masukkan API key Anthropic (buat di console.anthropic.com). Key hanya
-                  disimpan di perangkat ini. Biaya ± Rp150–300 per foto.
-                </p>
-                <div className="key-row">
-                  <input type="password" value={keyInput} placeholder="sk-ant-..."
-                    onChange={(e) => setKeyInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && saveApiKey()} />
-                  <button className="btn-log" onClick={saveApiKey}>SIMPAN</button>
-                </div>
-              </div>
-            )}
-
             {scan.status === "loading" && (
               <div className="scan-panel">
                 {scan.preview && <img className="scan-img" src={scan.preview} alt="Foto makanan" />}
