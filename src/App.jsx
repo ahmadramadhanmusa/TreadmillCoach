@@ -229,6 +229,14 @@ const PATHS = {
       <path d="M17 13a3 3 0 0 0 4 0l-2-5-2 5Z" />
     </>
   ),
+  watch: (
+    <>
+      <circle cx="12" cy="12" r="6" />
+      <polyline points="12 10 12 12 13 13" />
+      <path d="m16.13 7.66-.81-4.05a2 2 0 0 0-2-1.61h-2.68a2 2 0 0 0-2 1.61l-.78 4.05" />
+      <path d="m7.88 16.36.8 4a2 2 0 0 0 2 1.61h2.72a2 2 0 0 0 2-1.61l.81-4.05" />
+    </>
+  ),
   calc: (
     <>
       <rect x="4" y="2" width="16" height="20" rx="3" />
@@ -371,6 +379,14 @@ async function analyzeFoodPhoto(apiKey, b64) {
   return JSON.parse(text);
 }
 
+// ---- Smartwatch: detak jantung via Web Bluetooth (profil BLE standar) ----
+const BT_SUPPORTED = typeof navigator !== "undefined" && !!navigator.bluetooth;
+
+// Format Heart Rate Measurement (0x2A37): bit 0 flags = ukuran nilai 8/16-bit
+function parseHeartRate(dv) {
+  return dv.getUint8(0) & 1 ? dv.getUint16(1, true) : dv.getUint8(1);
+}
+
 // ---- Input angka: bebas saat mengetik, clamp saat blur ----
 function NumField({ label, unit, value, min, max, fallback, onCommit }) {
   const [txt, setTxt] = useState(String(value));
@@ -506,6 +522,9 @@ export default function App() {
   const [scan, setScan] = useState({ status: "idle" }); // idle|need-key|loading|done|error
   const [updateReady, setUpdateReady] = useState(false);
   const [showOnboard, setShowOnboard] = useState(false);
+  const [hr, setHr] = useState(null);                // bpm terkini dari smartwatch
+  const [hrStatus, setHrStatus] = useState("idle");  // idle|connecting|connected|error
+  const hrDevice = useRef(null);
   const fileRef = useRef(null);
   const beep = useBeeper();
   const prevPhase = useRef(null);
@@ -556,6 +575,45 @@ export default function App() {
       }
     }
   }, []);
+
+  // ---- Smartwatch: hubungkan & terima notifikasi detak jantung ----
+  const connectWatch = async () => {
+    // Watchdog: kalau dialog/koneksi menggantung >60 dtk, kembalikan tombol
+    const watchdog = setTimeout(() => {
+      setHrStatus((s) => (s === "connecting" ? "error" : s));
+    }, 60000);
+    try {
+      setHrStatus("connecting");
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ["heart_rate"] }],
+      });
+      hrDevice.current = device;
+      device.addEventListener("gattserverdisconnected", () => {
+        setHr(null);
+        setHrStatus("idle");
+      });
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService("heart_rate");
+      const ch = await service.getCharacteristic("heart_rate_measurement");
+      await ch.startNotifications();
+      ch.addEventListener("characteristicvaluechanged", (e) => {
+        setHr(parseHeartRate(e.target.value));
+      });
+      setHrStatus("connected");
+    } catch (err) {
+      // NotFoundError = pengguna menutup dialog pemilihan perangkat
+      setHrStatus(err?.name === "NotFoundError" ? "idle" : "error");
+    } finally {
+      clearTimeout(watchdog);
+    }
+  };
+
+  const disconnectWatch = () => {
+    try { hrDevice.current?.gatt?.disconnect(); } catch { /* sudah terputus */ }
+    hrDevice.current = null;
+    setHr(null);
+    setHrStatus("idle");
+  };
 
   const finishOnboard = () => {
     store.set("tm-weight", String(weight));
@@ -666,6 +724,12 @@ export default function App() {
   // Zona detak jantung (dari usia di profil BMR)
   const maxHr = 220 - bmrProfile.age;
   const hrZone = (lo, hi) => `${Math.round(maxHr * lo)}–${Math.round(maxHr * hi)}`;
+  // Zona aktif dari bpm smartwatch: 0 bakar lemak · 1 kardio · 2 intens · -1 di bawah zona
+  const hrZoneIdx = hr == null ? null
+    : hr >= maxHr * 0.8 ? 2 : hr >= maxHr * 0.7 ? 1 : hr >= maxHr * 0.6 ? 0 : -1;
+  const hrZoneLabel = hrZoneIdx == null ? ""
+    : hrZoneIdx === -1 ? "di bawah zona — santai"
+    : ["zona bakar lemak", "zona kardio", "zona intens"][hrZoneIdx];
 
   // ---- Log berat badan ----
   const loggedToday = weights.some((e) => e.d === dayKey());
@@ -862,7 +926,9 @@ export default function App() {
                 <span className={`dot${running ? " live" : ""}`} />
                 {done ? "Selesai" : phase.name}
               </span>
-              <span className="phase-count">fase {phaseIdx + 1}/6</span>
+              <span className="phase-count">
+                {hr != null && <>♥ {hr} · </>}fase {phaseIdx + 1}/6
+              </span>
             </div>
 
             <div className="timer">{done ? "30:00" : fmt(remain)}</div>
@@ -963,20 +1029,51 @@ export default function App() {
               <h2>Zona Detak Jantung</h2>
               <span className="meta">usia {bmrProfile.age} · maks {maxHr} bpm</span>
             </div>
+            {hrStatus === "connected" && (
+              <div className="hr-live">
+                <span className="hr-bpm">
+                  <Icon name="heart" size={20} />
+                  {hr ?? "—"}
+                </span>
+                <span className="hr-zone">{hr != null ? hrZoneLabel : "menunggu data dari jam…"}</span>
+                <button className="btn-ghost-sm" onClick={disconnectWatch}>PUTUS</button>
+              </div>
+            )}
             <div className="zones">
-              <div className="zone" style={{ background: "var(--green)" }}>
-                <span className="zl"><Icon name="heart" size={14} /> Bakar lemak · 60–70%</span>
-                <b>{hrZone(0.6, 0.7)} bpm</b>
-              </div>
-              <div className="zone" style={{ background: "var(--blue)" }}>
-                <span className="zl"><Icon name="heart" size={14} /> Kardio · 70–80%</span>
-                <b>{hrZone(0.7, 0.8)} bpm</b>
-              </div>
-              <div className="zone" style={{ background: "var(--pink)" }}>
-                <span className="zl"><Icon name="heart" size={14} /> Intens · 80–90%</span>
-                <b>{hrZone(0.8, 0.9)} bpm</b>
-              </div>
+              {[
+                { lbl: "Bakar lemak", pct: "60–70%", lo: 0.6, hi: 0.7, bg: "var(--green)" },
+                { lbl: "Kardio",      pct: "70–80%", lo: 0.7, hi: 0.8, bg: "var(--blue)" },
+                { lbl: "Intens",      pct: "80–90%", lo: 0.8, hi: 0.9, bg: "var(--pink)" },
+              ].map((z, i) => (
+                <div key={z.lbl} className={`zone${hrZoneIdx === i ? " active" : ""}`}
+                  style={{ background: z.bg }}>
+                  <span className="zl"><Icon name="heart" size={14} /> {z.lbl} · {z.pct}</span>
+                  <b>{hrZone(z.lo, z.hi)} bpm</b>
+                </div>
+              ))}
             </div>
+            {hrStatus !== "connected" && (
+              BT_SUPPORTED ? (
+                <>
+                  <button className="btn-watch" onClick={connectWatch}
+                    disabled={hrStatus === "connecting"}>
+                    <Icon name="watch" size={16} />
+                    {hrStatus === "connecting" ? "MENGHUBUNGKAN…" : "HUBUNGKAN SMARTWATCH"}
+                  </button>
+                  {hrStatus === "error" && (
+                    <p className="zone-note">
+                      Gagal terhubung. Pastikan mode <b>siaran detak jantung / HR broadcast</b> aktif
+                      di jam, lalu coba lagi.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="zone-note">
+                  Detak jantung live dari smartwatch tersedia di Android (Chrome).
+                  Browser ini belum mendukung Web Bluetooth.
+                </p>
+              )
+            )}
             <p className="zone-note">Fase tanjakan idealnya di zona bakar lemak–kardio. Usia diambil dari profil di tab BMR.</p>
           </section>
         </div>

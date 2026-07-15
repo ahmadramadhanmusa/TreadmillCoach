@@ -835,6 +835,64 @@ input:focus-visible {
   z-index: 20;
 }
 
+/* ---------- Smartwatch / detak jantung live ---------- */
+.hr-live {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.hr-bpm {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.hr-bpm svg {
+  color: var(--pink-strong);
+  animation: hrbeat 1s ease-in-out infinite;
+}
+
+@keyframes hrbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+.hr-zone {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.zone.active {
+  outline: 3px solid var(--ink);
+  outline-offset: -3px;
+}
+
+.btn-watch {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  margin-top: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+
+.btn-watch:disabled {
+  opacity: 0.5;
+}
+
 /* ---------- Onboarding ---------- */
 .onboard {
   position: fixed;
