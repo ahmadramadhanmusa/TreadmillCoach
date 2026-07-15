@@ -835,6 +835,78 @@ input:focus-visible {
   z-index: 20;
 }
 
+/* ---------- Target berat badan ---------- */
+.goal-tags {
+  margin-top: 14px;
+}
+
+.goal-plan {
+  list-style: none;
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-plan li {
+  position: relative;
+  padding: 10px 12px 10px 34px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.goal-plan li b {
+  color: var(--ink);
+}
+
+.goal-plan li::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 17px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.goal-warn {
+  margin-top: 12px;
+  background: var(--pink);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.goal-warn .btn-log {
+  align-self: flex-start;
+}
+
+.goal-apply {
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.goal-apply:disabled {
+  opacity: 0.45;
+}
+
+.goal-note {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.goal-note b {
+  color: var(--ink);
+}
+
 /* ---------- Smartwatch / detak jantung live ---------- */
 .hr-live {
   display: flex;

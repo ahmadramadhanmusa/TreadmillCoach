@@ -74,6 +74,16 @@ function BmiScale({ bmi }) {
   );
 }
 
+// ---- Target berat: klasifikasi laju & jadwal yang disarankan ----
+// 1 kg lemak ≈ 7.700 kkal. Laju sehat turun ≤0,6–0,8 kg/pekan, naik ≤0,5.
+const GOAL_LEVELS = {
+  jaga:      { label: "Jaga berat",        tone: "blue" },
+  santai:    { label: "Santai & aman",     tone: "green" },
+  sehat:     { label: "Sehat & realistis", tone: "green" },
+  menantang: { label: "Cukup menantang",   tone: "yellow" },
+  agresif:   { label: "Terlalu agresif",   tone: "pink" },
+};
+
 // ---- Faktor aktivitas untuk TDEE ----
 const ACTIVITIES = [
   { id: "sedentary",  label: "Jarang gerak", desc: "kerja duduk, tanpa olahraga", factor: 1.2 },
@@ -458,6 +468,7 @@ export default function App() {
   const [schedule, setSchedule] = useState(DEFAULT_SCHEDULE);
   const [editMode, setEditMode] = useState(false);
   const [bmrProfile, setBmrProfile] = useState({ sex: "m", height: 170, age: 30, activity: "moderate" });
+  const [goal, setGoal] = useState(null); // {kg, weeks} — target berat badan
   const [weights, setWeights] = useState([]);   // [{d: "YYYY-MM-DD", kg}]
   const [food, setFood] = useState([]);         // [{d: "YYYY-MM-DD", kcal, prot}]
   const [scan, setScan] = useState({ status: "idle" }); // idle|loading|done|error
@@ -502,6 +513,10 @@ export default function App() {
     try {
       const ws = store.get("tm-weights");
       if (ws) setWeights(JSON.parse(ws));
+    } catch { /* data korup, abaikan */ }
+    try {
+      const g = store.get("tm-goal");
+      if (g) setGoal(JSON.parse(g));
     } catch { /* data korup, abaikan */ }
     try {
       const fd = store.get("tm-food");
@@ -661,6 +676,51 @@ export default function App() {
   const bmiInfo = bmiCat(bmi);
   const idealLo = Math.round(18.5 * hM * hM);
   const idealHi = Math.round(22.9 * hM * hM);
+
+  // ---- Rencana target berat ----
+  const updateGoal = (patch) => {
+    setGoal((prev) => {
+      const next = { kg: Math.max(40, Math.round(weight) - 5), weeks: 12, ...prev, ...patch };
+      store.set("tm-goal", JSON.stringify(next));
+      return next;
+    });
+  };
+  const kcalSession = totalsAt(TOTAL, weight).kcal; // treadmill 30' penuh
+  const goalKg = goal?.kg ?? Math.max(40, Math.round(weight) - 5);
+  const goalWeeks = goal?.weeks ?? 12;
+  const goalDelta = goalKg - weight;                   // − turun · + naik
+  const goalRate = Math.abs(goalDelta) / goalWeeks;    // kg per pekan
+  const goalDaily = Math.round((goalRate * 7700) / 7); // defisit/surplus kkal per hari
+  const goalLoss = goalDelta < -0.4;
+  const goalGain = goalDelta > 0.4;
+  // Kardio menyumbang ±30% defisit, sisanya dari makan; 2–6 sesi per pekan
+  const goalSessions = goalLoss
+    ? Math.min(6, Math.max(2, Math.round((goalDaily * 0.3 * 7) / kcalSession)))
+    : goalGain ? 1 : 3;
+  const goalExDaily = Math.round((goalSessions * kcalSession) / 7);
+  const goalFood = Math.round(
+    goalLoss ? tdee - goalDaily + goalExDaily : goalGain ? tdee + goalDaily : tdee
+  );
+  // Rem pengaman: laju terlalu cepat, atau target makan jatuh di bawah BMR
+  const goalTooFast = goalLoss ? goalRate > 0.8 || goalFood < bmr : goalGain ? goalRate > 0.5 : false;
+  const goalRealWeeks = Math.min(52, Math.ceil(Math.abs(goalDelta) / (goalGain ? 0.4 : 0.6)));
+  const goalLevel = !goalLoss && !goalGain ? "jaga"
+    : goalTooFast ? "agresif"
+    : goalRate <= 0.3 ? "santai" : goalRate <= 0.6 ? "sehat" : "menantang";
+  const goalSchedule =
+    goalGain ? ["gym", "gym", "rest", "gym", "gym", "tm", "rest"]
+    : goalLevel === "menantang" ? ["both", "tm", "both", "tm", "both", "tm", "rest"]
+    : goalSessions >= 4 ? ["both", "tm", "gym", "tm", "gym", "tm", "rest"]
+    : DEFAULT_SCHEDULE;
+  const goalBeban = goalSchedule.filter((d) => d === "gym" || d === "both").length;
+  const goalKardio = goalSchedule.filter((d) => d === "tm" || d === "both").length;
+  const goalApplied = JSON.stringify(schedule) === JSON.stringify(goalSchedule);
+  const goalDate = new Date(Date.now() + goalWeeks * 7 * 86400000)
+    .toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const applyGoalSchedule = () => {
+    setSchedule(goalSchedule);
+    store.set("tm-schedule", JSON.stringify(goalSchedule));
+  };
 
   // Zona detak jantung (dari usia di profil BMR)
   const maxHr = 220 - bmrProfile.age;
@@ -1010,7 +1070,11 @@ export default function App() {
             <div className="timer bmr-num">
               {(weights.length ? weights[weights.length - 1].kg : weight).toLocaleString("id-ID")}
             </div>
-            <div className="timer-sub">kg · berat terkini</div>
+            <div className="timer-sub">
+              kg · berat terkini{goal && (goalLoss || goalGain)
+                ? ` · target ${goalKg.toLocaleString("id-ID")} kg (${Math.abs(goalDelta).toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg lagi)`
+                : ""}
+            </div>
 
             <div className="target-row">
               <div className="target">
@@ -1230,6 +1294,87 @@ export default function App() {
               Berat ideal untuk tinggi {bmrProfile.height} cm: <b>{idealLo}–{idealHi} kg</b>.
               {" "}{bmiInfo.advice}
             </p>
+          </section>
+
+          {/* Target berat badan */}
+          <section className="card">
+            <div className="chart-head">
+              <h2>Target Berat Badan</h2>
+              <span className="meta">dari {weight.toLocaleString("id-ID")} kg sekarang</span>
+            </div>
+
+            <div className="fields two">
+              <NumField label="BB target" unit="kg" value={goalKg} min={40} max={150} fallback={goalKg}
+                onCommit={(n) => updateGoal({ kg: n })} />
+              <NumField label="Dalam" unit="pekan" value={goalWeeks} min={2} max={52} fallback={12}
+                onCommit={(n) => updateGoal({ weeks: n })} />
+            </div>
+
+            <div className="status-row goal-tags">
+              <span className="tag" style={{ background: TONE[GOAL_LEVELS[goalLevel].tone] }}>
+                {GOAL_LEVELS[goalLevel].label}
+              </span>
+              {(goalLoss || goalGain) && (
+                <>
+                  <span className="tag" style={{ background: "var(--lavender)" }}>
+                    {goalLoss ? "turun" : "naik"} {Math.abs(goalDelta).toLocaleString("id-ID", { maximumFractionDigits: 1 })} kg
+                  </span>
+                  <span className="tag" style={{ background: "var(--blue)" }}>
+                    {goalRate.toLocaleString("id-ID", { maximumFractionDigits: 2 })} kg/pekan
+                  </span>
+                </>
+              )}
+            </div>
+
+            {goalLevel === "jaga" && (
+              <p className="goal-note">
+                Target sama dengan berat sekarang — fokus <b>menjaga</b>: makan
+                ±{tdee.toLocaleString("id-ID")} kkal/hari dan pertahankan jadwal
+                3 kardio + 3 beban per pekan.
+              </p>
+            )}
+
+            {goalTooFast && (
+              <div className="goal-warn">
+                <p>
+                  Laju ini butuh {goalLoss ? "defisit" : "surplus"} ±{goalDaily.toLocaleString("id-ID")} kkal/hari
+                  {goalLoss && goalFood < bmr ? " — target makan akan jatuh di bawah kebutuhan basal (BMR)" : ""}.
+                  Tidak sehat dan sulit dipertahankan. Waktu realistisnya <b>{goalRealWeeks} pekan</b>.
+                </p>
+                <button className="btn-log" onClick={() => updateGoal({ weeks: goalRealWeeks })}>
+                  PAKAI {goalRealWeeks} PEKAN
+                </button>
+              </div>
+            )}
+
+            {(goalLoss || goalGain) && !goalTooFast && (
+              <>
+                <ul className="goal-plan">
+                  <li>
+                    <b>Makan ±{goalFood.toLocaleString("id-ID")} kkal/hari</b> — {goalLoss
+                      ? `defisit ${goalDaily.toLocaleString("id-ID")} kkal, protein tetap ${protein} g agar otot terjaga`
+                      : `surplus ${goalDaily.toLocaleString("id-ID")} kkal, utamakan protein ${protein} g`}
+                  </li>
+                  <li>
+                    <b>Treadmill 30′ {goalKardio}×/pekan</b> — ≈{kcalSession} kkal/sesi
+                    {goalLoss ? `, menyumbang ±${Math.min(100, Math.round((goalExDaily / goalDaily) * 100))}% dari defisit` : " untuk jantung tetap sehat"}
+                  </li>
+                  <li>
+                    <b>Beban {goalBeban}×/pekan</b> — {goalLoss
+                      ? "menjaga massa otot selama defisit"
+                      : "pendorong utama kenaikan massa otot"}
+                  </li>
+                </ul>
+                <button className="btn-log goal-apply" onClick={applyGoalSchedule} disabled={goalApplied}>
+                  <Icon name="calendar" size={14} />
+                  {goalApplied ? "JADWAL SUDAH SESUAI" : "TERAPKAN KE TAB JADWAL"}
+                </button>
+                <p className="goal-note">
+                  Perkiraan tercapai <b>{goalDate}</b>. Timbang & catat berat tiap pekan di tab
+                  Progres — kalau melenceng 2 pekan berturut-turut, sesuaikan target makan ±100 kkal.
+                </p>
+              </>
+            )}
           </section>
 
           {/* Form data diri */}
