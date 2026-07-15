@@ -397,6 +397,48 @@ function NumField({ label, unit, value, min, max, fallback, onCommit }) {
   );
 }
 
+// ---- Form data diri (dipakai di onboarding & tab BMR) ----
+function ProfileForm({ weight, onWeight, profile, onPatch, bmr }) {
+  return (
+    <section className="card form-card">
+      <div>
+        <div className="form-label">Jenis kelamin</div>
+        <div className="seg">
+          <button className={profile.sex === "m" ? "sel" : ""}
+            onClick={() => onPatch({ sex: "m" })}>Pria</button>
+          <button className={profile.sex === "f" ? "sel" : ""}
+            onClick={() => onPatch({ sex: "f" })}>Wanita</button>
+        </div>
+      </div>
+
+      <div>
+        <div className="form-label">Data tubuh</div>
+        <div className="fields">
+          <NumField label="Berat" unit="kg" value={weight} min={40} max={150} fallback={75}
+            onCommit={onWeight} />
+          <NumField label="Tinggi" unit="cm" value={profile.height} min={130} max={220} fallback={170}
+            onCommit={(n) => onPatch({ height: n })} />
+          <NumField label="Usia" unit="thn" value={profile.age} min={10} max={90} fallback={30}
+            onCommit={(n) => onPatch({ age: n })} />
+        </div>
+      </div>
+
+      <div>
+        <div className="form-label">Aktivitas harian</div>
+        <div className="act-list">
+          {ACTIVITIES.map((a) => (
+            <button key={a.id} className={`act-opt${profile.activity === a.id ? " sel" : ""}`}
+              onClick={() => onPatch({ activity: a.id })}>
+              <span>{a.label} <span className="desc">· {a.desc}</span></span>
+              <span className="x">{Math.round(bmr * a.factor).toLocaleString("id-ID")} kkal</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---- Grafik tren berat badan (garis hitam + titik) ----
 function WeightChart({ entries }) {
   if (entries.length < 2) {
@@ -463,6 +505,7 @@ export default function App() {
   const [keyInput, setKeyInput] = useState("");
   const [scan, setScan] = useState({ status: "idle" }); // idle|need-key|loading|done|error
   const [updateReady, setUpdateReady] = useState(false);
+  const [showOnboard, setShowOnboard] = useState(false);
   const fileRef = useRef(null);
   const beep = useBeeper();
   const prevPhase = useRef(null);
@@ -504,7 +547,22 @@ export default function App() {
       const fd = store.get("tm-food");
       if (fd) setFood(JSON.parse(fd));
     } catch { /* data korup, abaikan */ }
+    // Onboarding hanya untuk pengguna baru; yang sudah punya data dilewati
+    if (!store.get("tm-onboarded")) {
+      if (store.get("tm-bmr") || store.get("tm-weight") || store.get("tm-sessions")) {
+        store.set("tm-onboarded", "1");
+      } else {
+        setShowOnboard(true);
+      }
+    }
   }, []);
+
+  const finishOnboard = () => {
+    store.set("tm-weight", String(weight));
+    store.set("tm-bmr", JSON.stringify(bmrProfile));
+    store.set("tm-onboarded", "1");
+    setShowOnboard(false);
+  };
 
   // Timer
   useEffect(() => {
@@ -733,6 +791,49 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* Onboarding pengguna baru */}
+      {showOnboard && (
+        <div className="onboard">
+          <div className="onboard-inner">
+            <div className="onboard-head">
+              <div className="onboard-logo"><Icon name="flame" size={26} /></div>
+              <h1>Selamat datang di BugarAI</h1>
+              <p>
+                Isi data diri dulu, ya — dipakai untuk menghitung BMI, kebutuhan
+                kalori harian (TDEE), dan target proteinmu. Semua data tersimpan
+                di perangkat ini saja.
+              </p>
+            </div>
+
+            <ProfileForm weight={weight} onWeight={setWeightAll}
+              profile={bmrProfile} onPatch={updateBmrProfile} bmr={bmr} />
+
+            <section className="week-card">
+              <div className="cell">
+                <div className="val">{bmi.toLocaleString("id-ID", { maximumFractionDigits: 1 })}</div>
+                <div className="lbl">BMI · {bmiInfo.label}</div>
+              </div>
+              <div className="sep" />
+              <div className="cell">
+                <div className="val">{tdee.toLocaleString("id-ID")}</div>
+                <div className="lbl">TDEE kkal/hari</div>
+              </div>
+              <div className="sep" />
+              <div className="cell">
+                <div className="val">{protein}<small>g</small></div>
+                <div className="lbl">Protein/hari</div>
+              </div>
+            </section>
+
+            <button className="btn-main onboard-go" onClick={finishOnboard}>
+              <Icon name="check" />
+              SIMPAN & MULAI
+            </button>
+            <p className="onboard-note">Data bisa diubah kapan saja di tab BMR.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="header">
         <div className="logo"><Icon name="flame" size={22} /></div>
@@ -1141,42 +1242,8 @@ export default function App() {
           </section>
 
           {/* Form data diri */}
-          <section className="card form-card">
-            <div>
-              <div className="form-label">Jenis kelamin</div>
-              <div className="seg">
-                <button className={bmrProfile.sex === "m" ? "sel" : ""}
-                  onClick={() => updateBmrProfile({ sex: "m" })}>Pria</button>
-                <button className={bmrProfile.sex === "f" ? "sel" : ""}
-                  onClick={() => updateBmrProfile({ sex: "f" })}>Wanita</button>
-              </div>
-            </div>
-
-            <div>
-              <div className="form-label">Data tubuh</div>
-              <div className="fields">
-                <NumField label="Berat" unit="kg" value={weight} min={40} max={150} fallback={75}
-                  onCommit={setWeightAll} />
-                <NumField label="Tinggi" unit="cm" value={bmrProfile.height} min={130} max={220} fallback={170}
-                  onCommit={(n) => updateBmrProfile({ height: n })} />
-                <NumField label="Usia" unit="thn" value={bmrProfile.age} min={10} max={90} fallback={30}
-                  onCommit={(n) => updateBmrProfile({ age: n })} />
-              </div>
-            </div>
-
-            <div>
-              <div className="form-label">Aktivitas harian</div>
-              <div className="act-list">
-                {ACTIVITIES.map((a) => (
-                  <button key={a.id} className={`act-opt${bmrProfile.activity === a.id ? " sel" : ""}`}
-                    onClick={() => updateBmrProfile({ activity: a.id })}>
-                    <span>{a.label} <span className="desc">· {a.desc}</span></span>
-                    <span className="x">{Math.round(bmr * a.factor).toLocaleString("id-ID")} kkal</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
+          <ProfileForm weight={weight} onWeight={setWeightAll}
+            profile={bmrProfile} onPatch={updateBmrProfile} bmr={bmr} />
 
           {/* Target harian */}
           <div className="stats">

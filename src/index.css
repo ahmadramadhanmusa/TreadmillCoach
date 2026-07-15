@@ -835,6 +835,69 @@ input:focus-visible {
   z-index: 20;
 }
 
+/* ---------- Onboarding ---------- */
+.onboard {
+  position: fixed;
+  inset: 0;
+  z-index: 60; /* di atas bottom nav (50) */
+  background: var(--bg);
+  overflow-y: auto;
+  padding: 32px 16px calc(32px + env(safe-area-inset-bottom));
+}
+
+.onboard-inner {
+  max-width: 430px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: rise 0.32s ease both;
+}
+
+.onboard-head {
+  text-align: center;
+  padding: 6px 10px 4px;
+}
+
+.onboard-logo {
+  width: 54px;
+  height: 54px;
+  border-radius: 19px;
+  background: var(--ink);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.onboard-head h1 {
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.onboard-head p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+
+.onboard-go {
+  flex: none; /* .btn-main flex:1 bikin tinggi kolaps di kontainer kolom */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.onboard-note {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
 .update-bar button {
   background: var(--pink-strong);
   color: #fff;
