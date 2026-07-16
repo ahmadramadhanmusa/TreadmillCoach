@@ -231,6 +231,12 @@ const PATHS = {
     </>
   ),
   heart: <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z" />,
+  heartPulse: (
+    <>
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z" />
+      <path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27" />
+    </>
+  ),
   scale: (
     <>
       <path d="M12 3v18" />
@@ -835,7 +841,7 @@ export default function App() {
         <div className="onboard">
           <div className="onboard-inner">
             <div className="onboard-head">
-              <div className="onboard-logo"><Icon name="flame" size={26} /></div>
+              <div className="onboard-logo"><Icon name="heartPulse" size={26} /></div>
               <h1>Selamat datang di BugarAI</h1>
               <p>
                 Isi data diri dulu, ya — dipakai untuk menghitung BMI, kebutuhan
@@ -875,7 +881,7 @@ export default function App() {
 
       {/* Header */}
       <header className="header">
-        <div className="logo"><Icon name="flame" size={22} /></div>
+        <div className="logo"><Icon name="heartPulse" size={22} /></div>
         <div className="titles">
           <h1>BugarAI</h1>
           <div className="sub">30 MENIT · ±5.000 LANGKAH</div>
