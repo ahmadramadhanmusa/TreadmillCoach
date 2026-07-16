@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import RunTab from "./RunTab.jsx";
-import { analyzeFoodPhoto } from "./backend.js";
+import {
+  analyzeFoodPhoto, getSessionSafe, pushState, pullState,
+  getAccount, linkEmail, sendLoginLink, onSignedIn,
+} from "./backend.js";
 import { onUpdateReady, applyUpdate } from "./swUpdate.js";
 
 /* ============================================================
@@ -94,13 +97,29 @@ const ACTIVITIES = [
 ];
 
 // ---- Penyimpanan lokal ----
+// Kunci yang ikut dicadangkan ke cloud (lihat kartu Cadangan & Akun)
+const SYNC_KEYS = [
+  "tm-weight", "tm-sessions", "tm-schedule", "tm-bmr",
+  "tm-weights", "tm-food", "tm-goal", "tm-onboarded",
+];
+
 const store = {
   get(key) {
     try { return localStorage.getItem(key); } catch { return null; }
   },
   set(key, value) {
     try { localStorage.setItem(key, value); } catch { /* penyimpanan penuh / private mode */ }
+    if (SYNC_KEYS.includes(key)) window.dispatchEvent(new Event("tm-changed"));
   },
+};
+
+const snapshot = () => {
+  const d = {};
+  for (const k of SYNC_KEYS) {
+    const v = store.get(k);
+    if (v != null) d[k] = v;
+  }
+  return d;
 };
 
 // ---- Helpers ----
@@ -483,6 +502,11 @@ export default function App() {
   const [hr, setHr] = useState(null);                // bpm terkini dari smartwatch
   const [hrStatus, setHrStatus] = useState("idle");  // idle|connecting|connected|error
   const hrDevice = useRef(null);
+  const [account, setAccount] = useState({ status: "local" });
+  const [syncAt, setSyncAt] = useState(() => store.get("tm-synced-at") || "");
+  const [syncEmail, setSyncEmail] = useState("");
+  const [syncMsg, setSyncMsg] = useState(null); // {kind: ok|err|load, text}
+  const syncTimer = useRef(null);
   const fileRef = useRef(null);
   const beep = useBeeper();
   const prevPhase = useRef(null);
@@ -538,6 +562,105 @@ export default function App() {
     }
   }, []);
 
+  // ---- Sinkronisasi cloud (tabel user_state) ----
+  // Terapkan snapshot dari cloud: tulis localStorage langsung (tanpa memicu
+  // event tm-changed, supaya tidak push balik), lalu segarkan state React.
+  const applySnapshot = (d) => {
+    try {
+      for (const [k, v] of Object.entries(d)) localStorage.setItem(k, v);
+    } catch { return; }
+    if (d["tm-weight"]) {
+      const n = Number(d["tm-weight"]) || 75;
+      setWeight(n);
+      setWeightText(String(n));
+    }
+    try { if (d["tm-sessions"]) setSessions(JSON.parse(d["tm-sessions"])); } catch { /* abaikan */ }
+    try { if (d["tm-schedule"]) setSchedule(JSON.parse(d["tm-schedule"])); } catch { /* abaikan */ }
+    try { if (d["tm-bmr"]) setBmrProfile((p) => ({ ...p, ...JSON.parse(d["tm-bmr"]) })); } catch { /* abaikan */ }
+    try { if (d["tm-weights"]) setWeights(JSON.parse(d["tm-weights"])); } catch { /* abaikan */ }
+    try { if (d["tm-food"]) setFood(JSON.parse(d["tm-food"])); } catch { /* abaikan */ }
+    try { if (d["tm-goal"]) setGoal(JSON.parse(d["tm-goal"])); } catch { /* abaikan */ }
+    if (d["tm-onboarded"]) setShowOnboard(false);
+  };
+
+  const refreshAccount = () => getAccount().then(setAccount).catch(() => {});
+
+  const pushNow = async () => {
+    try {
+      const at = await pushState(snapshot());
+      store.set("tm-synced-at", at);
+      setSyncAt(at);
+      refreshAccount();
+    } catch { /* offline — dicoba lagi pada perubahan berikutnya */ }
+  };
+
+  const pullAndApply = async () => {
+    try {
+      const remote = await pullState();
+      if (remote && remote.updated_at > (store.get("tm-synced-at") || "")) {
+        applySnapshot(remote.data);
+        store.set("tm-synced-at", remote.updated_at);
+        setSyncAt(remote.updated_at);
+      }
+    } catch { /* offline */ }
+  };
+
+  useEffect(() => {
+    const onChange = () => {
+      clearTimeout(syncTimer.current);
+      syncTimer.current = setTimeout(async () => {
+        // push otomatis hanya kalau cadangan sudah pernah diaktifkan
+        if (await getSessionSafe()) pushNow();
+      }, 4000);
+    };
+    window.addEventListener("tm-changed", onChange);
+    const off = onSignedIn(() => {
+      pullAndApply();
+      refreshAccount();
+    });
+    refreshAccount();
+    pullAndApply();
+    return () => {
+      window.removeEventListener("tm-changed", onChange);
+      off();
+      clearTimeout(syncTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const doLinkEmail = async () => {
+    const em = syncEmail.trim();
+    if (!/.+@.+\..+/.test(em)) {
+      setSyncMsg({ kind: "err", text: "Alamat email tidak valid." });
+      return;
+    }
+    setSyncMsg({ kind: "load", text: "Mengirim email konfirmasi…" });
+    try {
+      await linkEmail(em);
+      setSyncMsg({ kind: "ok", text: `Cek inbox ${em} lalu klik link konfirmasinya.` });
+      setSyncEmail("");
+      refreshAccount();
+    } catch (e) {
+      setSyncMsg({ kind: "err", text: e.message });
+    }
+  };
+
+  const doLoginLink = async () => {
+    const em = syncEmail.trim();
+    if (!/.+@.+\..+/.test(em)) {
+      setSyncMsg({ kind: "err", text: "Alamat email tidak valid." });
+      return;
+    }
+    setSyncMsg({ kind: "load", text: "Mengirim link login…" });
+    try {
+      await sendLoginLink(em);
+      setSyncMsg({ kind: "ok", text: `Link login dikirim ke ${em} — buka dari HP ini.` });
+      setSyncEmail("");
+    } catch (e) {
+      setSyncMsg({ kind: "err", text: e.message });
+    }
+  };
+
   // ---- Smartwatch: hubungkan & terima notifikasi detak jantung ----
   const connectWatch = async () => {
     // Watchdog: kalau dialog/koneksi menggantung >60 dtk, kembalikan tombol
@@ -582,6 +705,7 @@ export default function App() {
     store.set("tm-bmr", JSON.stringify(bmrProfile));
     store.set("tm-onboarded", "1");
     setShowOnboard(false);
+    pushNow(); // aktifkan cadangan cloud (akun anonim) sejak awal
   };
 
   // Timer
@@ -1237,6 +1361,80 @@ export default function App() {
               <div className="lbl">Langkah</div>
             </div>
           </div>
+
+          {/* Cadangan & akun */}
+          <section className="card form-card">
+            <div>
+              <div className="chart-head">
+                <h2>Cadangan & Akun</h2>
+                <span className="meta">
+                  {account.status === "local" ? "belum aktif"
+                    : syncAt ? `tersinkron ${fmtDay(syncAt.slice(0, 10))}` : "aktif"}
+                </span>
+              </div>
+
+              {account.status === "local" && (
+                <>
+                  <p className="sync-note">
+                    Data masih tersimpan di perangkat ini saja. Aktifkan cadangan
+                    supaya tidak hilang kalau data browser terhapus.
+                  </p>
+                  <button className="btn-log sync-btn" onClick={pushNow}>
+                    AKTIFKAN CADANGAN
+                  </button>
+                </>
+              )}
+
+              {account.status === "anon" && (
+                <>
+                  <p className="sync-note">
+                    Cadangan aktif — data tersimpan otomatis, tanpa akun.
+                    <b> Tautkan email</b> supaya bisa dipulihkan saat ganti HP.
+                  </p>
+                  <div className="sync-row">
+                    <input type="email" inputMode="email" placeholder="email@contoh.com"
+                      value={syncEmail} onChange={(e) => setSyncEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && doLinkEmail()} />
+                    <button className="btn-log" onClick={doLinkEmail}>TAUTKAN</button>
+                  </div>
+                </>
+              )}
+
+              {account.status === "pending" && (
+                <p className="sync-note">
+                  Menunggu konfirmasi <b>{account.email}</b> — cek inbox (dan folder
+                  spam), lalu klik link konfirmasinya.
+                </p>
+              )}
+
+              {account.status === "linked" && (
+                <p className="sync-note">
+                  Tersambung sebagai <b>{account.email}</b>. Data dicadangkan otomatis
+                  dan bisa dipulihkan di perangkat mana pun lewat email ini.
+                </p>
+              )}
+
+              {account.status !== "linked" && (
+                <details className="sync-login">
+                  <summary>Sudah punya cadangan di HP lama?</summary>
+                  <p className="sync-note">
+                    Masukkan email yang dulu ditautkan — kami kirim link login,
+                    buka dari HP ini, dan datamu kembali.
+                  </p>
+                  <div className="sync-row">
+                    <input type="email" inputMode="email" placeholder="email@contoh.com"
+                      value={syncEmail} onChange={(e) => setSyncEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && doLoginLink()} />
+                    <button className="btn-log" onClick={doLoginLink}>KIRIM LINK</button>
+                  </div>
+                </details>
+              )}
+
+              {syncMsg && (
+                <p className={`sync-msg ${syncMsg.kind}`}>{syncMsg.text}</p>
+              )}
+            </div>
+          </section>
 
           <div className="note">
             <b>Kalibrasi TDEE:</b> kalau 3 pekan berat tidak turun padahal asupan sesuai target,

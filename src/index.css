@@ -835,6 +835,66 @@ input:focus-visible {
   z-index: 20;
 }
 
+/* ---------- Cadangan & akun ---------- */
+.sync-note {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.sync-note b {
+  color: var(--ink);
+}
+
+.sync-btn {
+  margin-top: 10px;
+}
+
+.sync-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sync-row input {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font-size: 13.5px;
+  font-weight: 600;
+  background: var(--card);
+}
+
+.sync-login {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.sync-login summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.sync-login .sync-note {
+  margin-top: 8px;
+}
+
+.sync-msg {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+}
+
+.sync-msg.ok { background: var(--green); }
+.sync-msg.err { background: var(--pink); }
+.sync-msg.load { background: var(--yellow); }
+
 /* ---------- Target berat badan ---------- */
 .goal-tags {
   margin-top: 14px;
